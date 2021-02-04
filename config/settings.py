@@ -73,12 +73,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env.str('DB_NAME', None),
-        'USER': env.str('DB_USER', None),
-        'PASSWORD': env.str('DB_PASSWORD', None),
-        'HOST': env.str('DB_HOST', None),
-        'PORT': env.str('DB_PORT', None),
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'postrip',
+        'USER': 'belendia',
+        'PASSWORD': '',
+        'HOST': 'localhost',
+        'PORT': '',
     }
 }
 
