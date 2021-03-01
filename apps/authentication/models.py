@@ -51,6 +51,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=True)
+    manager = models.ForeignKey('self', null=True, related_name='subordinate', on_delete=models.SET_NULL)
 
     objects = UserManager()
 
