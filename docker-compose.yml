@@ -1,0 +1,89 @@
+version: "3"
+
+services:
+   db:
+     image: postgres:13.3-alpine
+     ports:
+       - "5432:5432"
+     environment:
+       - POSTGRES_DB=postrip
+       - POSTGRES_USER=postgres
+       - POSTGRES_PASSWORD=postgres123882
+       - PGDATA=/var/lib/postgresql/data/pgdata
+     restart: on-failure
+     volumes:
+       - /Users/belendia/.postgres_postrip:/var/lib/postgresql/data/
+  # Redis
+  redis:
+    image: redis:6.0.8-alpine
+    restart: on-failure
+
+  web:
+    container_name: postrip_web
+    build:
+      context: .
+      dockerfile: .
+    command: >
+      sh -c "python /code/manage.py collectstatic --no-input
+      && python /code/manage.py makemigrations 
+      && python /code/manage.py migrate  --noinput
+      && gunicorn config.wsgi -b 0.0.0.0:8880"
+    volumes:
+      - .:/code
+
+    ports:
+      - "8880:8880"
+    restart: on-failure
+
+  # Celery worker
+  celery_worker:
+    container_name: postrip_celery_worker
+    build:
+      context: .
+      dockerfile: .
+    command: >
+      sh -c "wait-for redis:6379 && wait-for web:8880
+      && celery -A config  worker -l info"
+    volumes:
+      - ./ussd_be:/code
+    depends_on:
+      - redis
+      - web
+    restart: on-failure
+  # Celery worker
+  celery_beat:
+    container_name: postrip_celery_beat
+    build:
+      context: .
+      dockerfile: .
+    command: >
+      sh -c "wait-for redis:6379 && wait-for web:8880
+      && celery -A config beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    volumes:
+      - ./ussd_be:/code
+    depends_on:
+      - redis
+      - web
+    restart: on-failure
+
+  # ReactJS Frontend + Reverse Proxy for the web
+
+#  flare_nginx:
+#    container_name: flare_nginx
+#    build:
+#      context: .
+#      dockerfile: ./ussd_fe/Dockerfile
+#    ports:
+#      - "8999:8999"
+#    environment:
+#      - VIRTUAL_HOST=ussd.covid19.et
+#      - VIRTUAL_PORT=8999
+#      #- LETSENCRYPT_HOST=ussd.covid19.et
+#    network_mode: "bridge"
+#    volumes:
+#      - ./ussd_be/staticfiles/admin:/usr/share/nginx/html/static/admin
+#      - ./ussd_be/staticfiles/rest_framework:/usr/share/nginx/html/static/rest_framework
+#    depends_on:
+#      - web
+# volumes:
+#   postgres_data:
